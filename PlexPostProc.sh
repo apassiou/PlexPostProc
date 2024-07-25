@@ -8,7 +8,7 @@
 #******************************************************************************
 #******************************************************************************
 #
-#  Version: 2022.2.7 (forked by apassiou)
+#  Version: 2024.7.24 (forked by apassiou)
 #
 #  Pre-requisites:
 #     ffmpeg (recommended) with libx265 or handbrakecli
@@ -37,10 +37,11 @@
 #******************************************************************************
 
 TMPFOLDER="/tmp"
-ENCODER="ffmpeg"  # Encoder to use:
+ENCODER="nvenc"  # Encoder to use:
                   # "ffmpeg" for FFMPEG [DEFAULT]
                   # "handbrake" for HandBrake
                   # "nvtrans" for Plex Transcoder with NVENC support
+                  # "nvenc" utilizes ffmpeg to leverage Nvidia NVENC
 RES="720"         # Resolution to convert to:
                   # "480" = 480 Vertical Resolution
                   # "720" = 720 Vertical Resolution
@@ -51,6 +52,8 @@ RES="720"         # Resolution to convert to:
 AUDIO_CODEC="libfdk_aac" # From best to worst: libfdk_aac > libmp3lame/eac3/ac3 > aac. But libfdk_acc requires manual compilaton of ffmpeg. For OTA DVR standard acc should be enough.
 AUDIO_BITRATE=96
 VIDEO_CODEC="libx265" # Will need Ubuntu 18.04 LTS or later. Otherwise change to "libx264". On average libx265 should produce files half in size of libx264  without losing quality. It is more compute intensive, so transcoding will take longer.
+HW_CODEC="hevc_nvenc" #NVIDIA nvenc has support for h264_nvenc, hevc_nvenc and av1_nvenc (but AV1 needs Ada Lovelace or later series of cards (2022 or later https://en.wikipedia.org/wiki/Ada_Lovelace_(microarchitecture))
+HW_QUALITY=32 #Software (CPU) and HW (GPU) encoding use different quality ranges, 32 on HW is about the same bitrate as 26 on SW.
 VIDEO_QUALITY=26 #Lower values produce better quality. It is not recommended going lower than 18. 26 produces around 1Mbps video, 23 around 1.5Mbps.
 VIDEO_FRAMERATE="24000/1001" #Standard US movie framerate, most US TV shows run at this framerate as well
 
@@ -166,6 +169,9 @@ if [ ! -z "$1" ]; then
        /usr/lib/plexmediaserver/Plex\ Transcoder -y -hide_banner -hwaccel nvdec -i "$FILENAME" -c:v h264_nvenc -b:v "${ABR}M" -maxrate:v "${MBR}M" -profile:v high -bf:v 3 -bufsize:v "${BUF}M" -preset:v hq -forced-idr:v 1 -c:a copy "$TEMPFILENAME"
              check_errs $? "Failed to convert using smart Plex Transcoder (NVENC)."
           fi
+   elif [[ $ENCODER == "nvenc" ]]; then
+     FILENAME=$1  # %FILE% - Filename of original file
+     ffmpeg -hwaccel auto -hwaccel_output_format cuda -i "$FILENAME" -vf yadif_cuda=2:-1:0,scale_npp=-1:$RES -c:v $HW_CODEC -rc constqp -qp $HW_QUALITY -b:v 0 -preset fast -tune hq -rc-lookahead 20 -forced-idr:v 1 -c:a "$AUDIO_CODEC" -ac "$DOWNMIX_AUDIO" -b:a "$AUDIO_BITRATE"k -async 1 "$TEMPFILENAME"
    else
      echo "Oops, invalid ENCODER string.  Using Default [FFMpeg]." | tee -a $LOGFILE
      ffmpeg -i "$FILENAME" -s hd$RES -c:v libx264 -preset veryfast -vf yadif -c:a copy "$TEMPFILENAME"
@@ -220,7 +226,7 @@ if [ ! -z "$1" ]; then
 
 else
    echo "********************************************************" | tee -a $LOGFILE
-   echo "PlexPostProc by nebhead" | tee -a $LOGFILE
+   echo "PlexPostProc by apassiou. Original by nebhead" | tee -a $LOGFILE
    echo "Usage: $0 FileName" | tee -a $LOGFILE
    echo "********************************************************" | tee -a $LOGFILE
 fi
