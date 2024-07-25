@@ -5,6 +5,23 @@ If you're like me, you probably just want a no-frills/no-fuss script to convert 
 
 I wanted to create a very, very simple script to do the conversion with no frills.  All seems to be working fine in its current state so I'm happy to share with the world.
 
+**2024-07-24 apassiou Update:** 
+- This update adds NVENC hardware encoding. For this function it requires Nvidia video card such as Quadro P620 (cheap) or Quadro P1000. Almost any Nvidia card made after 2016/2017 should work. AV1 requires cards newer than 2022. Nvidia did raise simultaneous streams for all limited cards up to 8 (from 3).
+- New options for HW_CODEC and HW_QUALITY as they mean different things for SW (CPU) and HW (GPU) encoding. HW_QUALITY 32 is about the same bitrate as CPU QUALITY 26.
+- Performance difference between CPU (i5 8500) hevc and GPU (Quadro P1000) hevc_nvenc encoding is 5x faster.
+- Requires ffmpeg compiled with the following flags (which may have dependancies such an Nvidia SDK and Nvidia driver). Pre-compiled ffmpeg binaries for Ubuntu (Debian) are provided in this repository:
+  --enable-libfdk-aac
+  --enable-libfreetype
+  --enable-libx264 
+  --enable-libx265 
+  --enable-cuda-nvcc 
+  --enable-cuda-llvm 
+  --enable-ffnvcodec 
+  --enable-libnpp 
+  --enable-vaapi 
+  --enable-hwaccel=h264_vaapi 
+  --enable-nonfree
+
 **2022-02-02 apassiou Update:** 
 - This update mostly focuses on ffmpeg configuration changes. Added menu to customize framerate, quality, audio downmixing and codec selection
 - You need FFMPEG with HEVC (libx265) to use FFMPEG. Recommended Ubuntu 20.04 or later to utilize libx265 3.2+
