@@ -170,8 +170,20 @@ if [ ! -z "$1" ]; then
              check_errs $? "Failed to convert using smart Plex Transcoder (NVENC)."
           fi
    elif [[ $ENCODER == "nvenc" ]]; then
-     FILENAME=$1  # %FILE% - Filename of original file
-     ffmpeg -hwaccel auto -hwaccel_output_format cuda -i "$FILENAME" -vf yadif_cuda=2:-1:0,scale_npp=-1:$RES -c:v $HW_CODEC -rc constqp -qp $HW_QUALITY -b:v 0 -preset fast -tune hq -rc-lookahead 20 -forced-idr:v 1 -c:a "$AUDIO_CODEC" -ac "$DOWNMIX_AUDIO" -b:a "$AUDIO_BITRATE"k -async 1 "$TEMPFILENAME"
+     export FFMPEG_EXTERNAL_LIBS="$(find /var/lib/plexmediaserver/Library/ -name "libmpeg2video_decoder.so" -printf "%h\n")/"
+     LOG_STRING_2="Using NVENC"
+     LOG_STRING_3=" [$FILESIZE -> "
+     if [[ PPP_CHECK -eq 0 ]]; then
+         printf "$LOG_STRING_2$LOG_STRING_3" | tee -a $LOGFILE
+     fi
+     start_time=$(date +%s)
+     ffmpeg -hwaccel auto -hwaccel_output_format cuda -i "$FILENAME" -vf yadif_cuda=2:-1:0,scale_npp=-1:"$RES" -c:v "$HW_CODEC" -rc constqp -qp "$HW_QUALITY" -b:v 0 -preset fast -tune hq -rc-lookahead 20 -forced-idr:v 1 -c:a "$AUDIO_CODEC" -ac "$DOWNMIX_AUDIO" -b:a "$AUDIO_BITRATE"k -async 1 "$TEMPFILENAME"
+     end_time=$(date +%s)
+     seconds="$(( end_time - start_time ))"
+     minutes_taken="$(( seconds / 60 ))"
+     seconds_taken="$(( $seconds - (minutes_taken * 60) ))"
+     LOG_STRING_4="$(ls -lh $TEMPFILENAME | awk ' { print $5 }')] - [$minutes_taken min $seconds_taken sec]\n"
+     check_errs $? "Failed to convert using NVENC."
    else
      echo "Oops, invalid ENCODER string.  Using Default [FFMpeg]." | tee -a $LOGFILE
      ffmpeg -i "$FILENAME" -s hd$RES -c:v libx264 -preset veryfast -vf yadif -c:a copy "$TEMPFILENAME"
@@ -193,7 +205,7 @@ if [ ! -z "$1" ]; then
    mv -f "$TEMPFILENAME" "${FILENAME%.ts}.mkv" # Move completed tempfile to .grab folder/filename
    check_errs $? "Failed to move converted file: $TEMPFILENAME"
 
-   rm -f "$LOCKFILE.ppplock"* # Delete the lockfile 
+   rm -f "$LOCKFILE.ppplock"* # Delete the lockfile
    check_errs $? "Failed to remove lockfile."
 
    # [WORKAROUND] Wait for any other post-processing scripts to complete before exiting. So that plex doesnt start deleting grab files.
