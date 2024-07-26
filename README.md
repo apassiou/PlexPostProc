@@ -9,7 +9,7 @@ I wanted to create a very, very simple script to do the conversion with no frill
 - This update adds NVENC hardware encoding. For this function it requires Nvidia video card such as Quadro P620 (cheap) or Quadro P1000. Almost any Nvidia card made after 2016/2017 should work. AV1 requires cards newer than 2022. Nvidia did raise simultaneous streams for all limited cards up to 8 (from 3).
 - New options for HW_CODEC and HW_QUALITY as they mean different things for SW (CPU) and HW (GPU) encoding. HW_QUALITY 32 is about the same bitrate as CPU QUALITY 26.
 - Performance difference between CPU (i5 8500) hevc and GPU (Quadro P1000) hevc_nvenc encoding is 5x faster.
-- Requires ffmpeg compiled with the following flags (which may have dependancies such an Nvidia SDK and Nvidia driver). Pre-compiled ffmpeg binaries for Ubuntu (Debian) are provided in this repository:
+- Requires ffmpeg compiled with the following flags (which may have dependancies such an Nvidia SDK and Nvidia driver):
   --enable-libfdk-aac
   --enable-libfreetype
   --enable-libx264 
