@@ -8,7 +8,7 @@
 #******************************************************************************
 #******************************************************************************
 #
-#  Version: 2024.7.24 (forked by apassiou)
+#  Version: 2024.7.29 (forked by apassiou)
 #
 #  Pre-requisites:
 #     ffmpeg (recommended) with libx265 or handbrakecli
@@ -38,26 +38,31 @@
 
 TMPFOLDER="/tmp"
 ENCODER="nvenc"  # Encoder to use:
-                  # "ffmpeg" for FFMPEG [DEFAULT]
-                  # "handbrake" for HandBrake
-                  # "nvtrans" for Plex Transcoder with NVENC support
-                  # "nvenc" utilizes ffmpeg to leverage Nvidia NVENC
+                  # "ffmpeg" for FFMPEG (CPU)
+                  # "nvenc" utilizes ffmpeg to leverage Nvidia NVENC (GPU)
+                  # "handbrake" for HandBrake (NOT MAINTAINED)
+                  # "nvtrans" for Plex Transcoder with NVENC support (NOT MAINTAINED)
+                  
 RES="720"         # Resolution to convert to:
                   # "480" = 480 Vertical Resolution
                   # "720" = 720 Vertical Resolution
                   # "1080" = 1080 Vertical Resolution
 
-
 #**************************FFMPEG SPECIFIC SETTINGS****************************
-AUDIO_CODEC="libfdk_aac" # From best to worst: libfdk_aac > libmp3lame/eac3/ac3 > aac. But libfdk_acc requires manual compilaton of ffmpeg. For OTA DVR standard acc should be enough.
-AUDIO_BITRATE=96
+# CPU ENCODING SETTINGS
 VIDEO_CODEC="libx265" # Will need Ubuntu 18.04 LTS or later. Otherwise change to "libx264". On average libx265 should produce files half in size of libx264  without losing quality. It is more compute intensive, so transcoding will take longer.
-HW_CODEC="hevc_nvenc" #NVIDIA nvenc has support for h264_nvenc, hevc_nvenc and av1_nvenc (but AV1 needs Ada Lovelace or later series of cards (2022 or later https://en.wikipedia.org/wiki/Ada_Lovelace_(microarchitecture))
-HW_QUALITY=32 #Software (CPU) and HW (GPU) encoding use different quality ranges, 32 on HW is about the same bitrate as 26 on SW.
 VIDEO_QUALITY=26 #Lower values produce better quality. It is not recommended going lower than 18. 26 produces around 1Mbps video, 23 around 1.5Mbps.
 VIDEO_FRAMERATE="24000/1001" #Standard US movie framerate, most US TV shows run at this framerate as well
 
+#GPU ENCODING SETTINGS
+HW_CODEC="hevc_nvenc" #NVIDIA nvenc has support for h264_nvenc, hevc_nvenc and av1_nvenc (but AV1 needs Ada Lovelace or later series of cards (2022 or later https://en.wikipedia.org/wiki/Ada_Lovelace_(microarchitecture))
+HW_QUALITY=31 #Software (CPU) and HW (GPU) encoding use different quality ranges, 32 on HW is about the same bitrate as 26 on SW.
+NVPRESET=p5 #Trades speed for quality, p1 is fastest and worst quality, p7 is slowers and best quality. On most GPUs p1 through p5 are almost the same speed, so no reason to use below p5. From p5 to p6 speed drops by about 20%, from p5 to p7 speed drops by about 50%
+
+#BOTH CPU AND GPU SETTINGS
 DOWNMIX_AUDIO=2 #Number of channels to downmix to, set to 0 to turn off (leave source number of channels, but make sure to increase audio bitrate to accomodate all the needed bitrate. For 5.1 Id set no lower than 320). 1 == mono, 2 == stereo, 6 == 5.1
+AUDIO_CODEC="libfdk_aac" # From best to worst: libfdk_aac > libmp3lame/eac3/ac3 > aac. But libfdk_acc requires manual compilaton of ffmpeg. For OTA DVR standard acc should be enough.
+AUDIO_BITRATE=96
 
 #******************************************************************************
 #  Do not edit below this line
@@ -177,7 +182,7 @@ if [ ! -z "$1" ]; then
          printf "$LOG_STRING_2$LOG_STRING_3" | tee -a $LOGFILE
      fi
      start_time=$(date +%s)
-     ffmpeg -hwaccel auto -hwaccel_output_format cuda -i "$FILENAME" -vf yadif_cuda=2:-1:0,scale_npp=-1:"$RES" -c:v "$HW_CODEC" -rc constqp -qp "$HW_QUALITY" -b:v 0 -preset fast -tune hq -rc-lookahead 20 -forced-idr:v 1 -c:a "$AUDIO_CODEC" -ac "$DOWNMIX_AUDIO" -b:a "$AUDIO_BITRATE"k -async 1 "$TEMPFILENAME"
+     ffmpeg -hwaccel auto -hwaccel_output_format cuda -i "$FILENAME" -vf yadif_cuda=2:-1:0,scale_npp=-1:"$RES" -c:v "$HW_CODEC" -rc constqp -qp "$HW_QUALITY" -b:v 0 -preset "$NVPRESET" -tune hq -rc-lookahead 20 -forced-idr:v 1 -c:a "$AUDIO_CODEC" -ac "$DOWNMIX_AUDIO" -b:a "$AUDIO_BITRATE"k -async 1 "$TEMPFILENAME"
      end_time=$(date +%s)
      seconds="$(( end_time - start_time ))"
      minutes_taken="$(( seconds / 60 ))"
