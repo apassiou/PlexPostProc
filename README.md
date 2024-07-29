@@ -5,6 +5,10 @@ If you're like me, you probably just want a no-frills/no-fuss script to convert 
 
 I wanted to create a very, very simple script to do the conversion with no frills.  All seems to be working fine in its current state so I'm happy to share with the world.
 
+**2024-7-29 apassiou Update:**
+- Added nvenc p1-p7 preset
+- Cleanup
+
 **2024-07-24 apassiou Update:** 
 - This update adds NVENC hardware encoding. For this function it requires Nvidia video card such as Quadro P620 (cheap) or Quadro P1000. Almost any Nvidia card made after 2016/2017 should work. AV1 requires cards newer than 2022. Nvidia did raise simultaneous streams for all limited cards up to 8 (from 3).
 - New options for HW_CODEC and HW_QUALITY as they mean different things for SW (CPU) and HW (GPU) encoding. HW_QUALITY 32 is about the same bitrate as CPU QUALITY 26.
