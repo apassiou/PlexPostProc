@@ -176,7 +176,7 @@ if [ ! -z "$1" ]; then
           fi
    elif [[ $ENCODER == "nvenc" ]]; then
      export FFMPEG_EXTERNAL_LIBS="$(find /var/lib/plexmediaserver/Library/ -name "libmpeg2video_decoder.so" -printf "%h\n")/"
-     LOG_STRING_2="Using NVENC"
+     LOG_STRING_2="Using NVENC (QP $HW_QUALITY, $NVPRESET)"
      LOG_STRING_3=" [$FILESIZE -> "
      if [[ PPP_CHECK -eq 0 ]]; then
          printf "$LOG_STRING_2$LOG_STRING_3" | tee -a $LOGFILE
