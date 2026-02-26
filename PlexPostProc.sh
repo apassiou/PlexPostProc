@@ -8,7 +8,7 @@
 #******************************************************************************
 #******************************************************************************
 #
-#  Version: 2024.7.29 (forked by apassiou)
+#  Version: 2026.2.25 (forked by apassiou)
 #
 #  Pre-requisites:
 #     ffmpeg (recommended) with libx265 or handbrakecli
@@ -38,15 +38,24 @@
 
 TMPFOLDER="/tmp"
 ENCODER="nvenc"  # Encoder to use:
-                  # "ffmpeg" for FFMPEG (CPU)
-                  # "nvenc" utilizes ffmpeg to leverage Nvidia NVENC (GPU)
-                  # "handbrake" for HandBrake (NOT MAINTAINED)
-                  # "nvtrans" for Plex Transcoder with NVENC support (NOT MAINTAINED)
-                  
+                  # "ffmpeg" for FFMPEG [DEFAULT]
+                  # "handbrake" for HandBrake
+                  # "nvtrans" for Plex Transcoder with NVENC support
+                  # "nvenc" utilizes ffmpeg to leverage Nvidia NVENC
 RES="720"         # Resolution to convert to:
                   # "480" = 480 Vertical Resolution
                   # "720" = 720 Vertical Resolution
                   # "1080" = 1080 Vertical Resolution
+
+
+#Checking if HW is present for NVENC, otherwise defaulting to ffmpeg
+if [[ $ENCODER == "nvenc" ]]; then
+    nvidia-smi -a | grep -i "gpu uuid" >/dev/null #This command will yield error instead of GPU info if no GPU
+    if [[ $? -eq 1 ]]; then
+        ENCODER="ffmpeg"
+        echo "ERROR... NO GPU" | tee -a $LOGFILE
+    fi
+fi
 
 #**************************FFMPEG SPECIFIC SETTINGS****************************
 # CPU ENCODING SETTINGS
@@ -56,7 +65,7 @@ VIDEO_FRAMERATE="24000/1001" #Standard US movie framerate, most US TV shows run 
 
 #GPU ENCODING SETTINGS
 HW_CODEC="hevc_nvenc" #NVIDIA nvenc has support for h264_nvenc, hevc_nvenc and av1_nvenc (but AV1 needs Ada Lovelace or later series of cards (2022 or later https://en.wikipedia.org/wiki/Ada_Lovelace_(microarchitecture))
-HW_QUALITY=31 #Software (CPU) and HW (GPU) encoding use different quality ranges, 32 on HW is about the same bitrate as 26 on SW.
+HW_QUALITY=30 #Software (CPU) and HW (GPU) encoding use different quality ranges, 32 on HW is about the same bitrate as 26 on SW.
 NVPRESET=p5 #Trades speed for quality, p1 is fastest and worst quality, p7 is slowers and best quality. On most GPUs p1 through p5 are almost the same speed, so no reason to use below p5. From p5 to p6 speed drops by about 20%, from p5 to p7 speed drops by about 50%
 
 #BOTH CPU AND GPU SETTINGS
@@ -210,7 +219,7 @@ if [ ! -z "$1" ]; then
    mv -f "$TEMPFILENAME" "${FILENAME%.ts}.mkv" # Move completed tempfile to .grab folder/filename
    check_errs $? "Failed to move converted file: $TEMPFILENAME"
 
-   rm -f "$LOCKFILE.ppplock"* # Delete the lockfile
+   rm -f "$LOCKFILE.ppplock"* # Delete the lockfile 
    check_errs $? "Failed to remove lockfile."
 
    # [WORKAROUND] Wait for any other post-processing scripts to complete before exiting. So that plex doesnt start deleting grab files.
