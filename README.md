@@ -5,6 +5,9 @@ If you're like me, you probably just want a no-frills/no-fuss script to convert 
 
 I wanted to create a very, very simple script to do the conversion with no frills.  All seems to be working fine in its current state so I'm happy to share with the world.
 
+**2026-2-25 apassiou Update:**
+- Added fallback to ffmpeg if NVENC fails
+
 **2024-7-29 apassiou Update:**
 - Added nvenc p1-p7 preset
 - Cleanup
